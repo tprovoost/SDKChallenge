@@ -3,15 +3,9 @@ package com.d360.application;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 
 import com.d360.sdk.D360Event;
 import com.d360.sdk.D360SDK;
-import com.google.gson.Gson;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,13 +28,13 @@ public class MainActivity extends AppCompatActivity {
         D360SDK.init(this, "kilctuhEeONbf-V1JMH7");
 
         // JSONObject parameters = new JSONObject(DATA_TEST);
-        D360Event event = new D360Event();
-        event.addDataParameters("foo", "bar");
-        event.addMetaParameters("eventNo", 150);
-        event.addMetaParameters("localTimeStamp", 1458578476);
-        event.addMetaParameters("name", "ev_MyCustomEvent");
-        event.addMetaParameters("connectionInfo", "wifi");
-        D360SDK.get().sendEvent("EventTest", event);
-
+        for (int i = 0; i < 100; ++i) {
+            D360Event event = new D360Event("ev_MyCustomEvent" + i);
+            event.addDataParameter("foo" + i, "bar" + i);
+            event.addEventNo();
+            event.addTimeStamp();
+            event.addConnectionType();
+            D360SDK.get().sendEvent(event);
+        }
     }
 }

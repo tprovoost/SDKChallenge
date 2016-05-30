@@ -10,6 +10,6 @@ import static org.junit.Assert.*;
 public class ExampleUnitTest {
     @Test
     public void sendMessage() throws Exception {
-        D360SDK.get().sendEvent("coucou", null);
+
     }
 }
