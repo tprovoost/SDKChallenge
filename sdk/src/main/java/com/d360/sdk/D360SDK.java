@@ -62,4 +62,7 @@ public class D360SDK {
         return mD360RequestManager;
     }
 
+    public Context getContext() {
+        return mContext;
+    }
 }

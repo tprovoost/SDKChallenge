@@ -29,7 +29,7 @@ import java.util.Queue;
 /**
  * Created by Thomas on 30/05/2016.
  */
-public class D360RequestManager extends BroadcastReceiver {
+public class D360RequestManager extends BroadcastReceiver implements Response.ErrorListener, Response.Listener<JSONObject> {
 
     public enum ConnectionType {NONE, WIFI, MOBILE, OTHER}
 
@@ -62,8 +62,12 @@ public class D360RequestManager extends BroadcastReceiver {
         mHeaders.put("Content-Type", "application/json");
     }
 
+    /**
+     * This method sends the event onto the REST server. While doing so, it pushes it in a queue
+     * in case the connection is not available.
+     * @param event
+     */
     public void sendEvent(final D360Event event) {
-
         RequestQueue queue = Volley.newRequestQueue(mContext);
 
         final JSONObject parameters;
@@ -84,28 +88,27 @@ public class D360RequestManager extends BroadcastReceiver {
                 DEV_URL,
                 mHeaders,
                 parameters,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        Log.i(TAG, "Request Successfully sent: " + response);
-                        mQueueEvents.poll();
-                        if (mQueueEvents.isEmpty() && mRegistered) {
-                            mContext.unregisterReceiver(D360RequestManager.this);
-                            mRegistered = false;
-                        }
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                handleError(error, event);
-                Log.e(TAG, "Error: " + error.getMessage());
-            }
-        });
+                this,
+                D360RequestManager.this);
         queue.add(request);
     }
 
-    private void handleError(VolleyError error, D360Event event) {
-        if (getConnectionType() == ConnectionType.NONE) {
+    @Override
+    public void onResponse(JSONObject response) {
+        Log.i(TAG, "Request Successfully sent: " + response);
+       // TODO handle response
+        mQueueEvents.poll();
+        if (mQueueEvents.isEmpty() && mRegistered) {
+            mContext.unregisterReceiver(D360RequestManager.this);
+            mRegistered = false;
+        }
+    }
+
+    @Override
+    public void onErrorResponse(VolleyError error) {
+        Log.e(TAG, "Error: " + error.getMessage());
+        if (checkConnectivity(mContext)) {
+            Log.i(TAG, "Registering " + TAG + " as a BroadCastReceiver");
             D360Persistence.setLastKey(mContext, mApiKey);
 
             // register this class as a receiver for when the connection comes back
@@ -115,8 +118,14 @@ public class D360RequestManager extends BroadcastReceiver {
         }
     }
 
-    private void handleResponse(JSONObject response) {
-
+    /**
+     * This method returns if yes or no a connection is available. <br/>
+     * Warning: only works for Wifi and mobile.
+     * @param context the context to test the connection with. Typically an application.
+     * @return
+     */
+    public static boolean checkConnectivity(Context context) {
+         return getConnectionType(context) == ConnectionType.NONE;
     }
 
     /**
@@ -124,9 +133,9 @@ public class D360RequestManager extends BroadcastReceiver {
      *
      * @return If connected, returns if on wifi or mobile. Returns none in the other cases.
      */
-    public ConnectionType getConnectionType() {
+    public static ConnectionType getConnectionType(Context context) {
         ConnectivityManager cm =
-                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         boolean isConnected = activeNetwork != null &&
@@ -145,7 +154,7 @@ public class D360RequestManager extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (getConnectionType() != ConnectionType.NONE && !mAlreadyResuming) {
+        if (getConnectionType(mContext) != ConnectionType.NONE && !mAlreadyResuming) {
             Log.v(TAG, "Connection is back on, resuming event sending...");
             mAlreadyResuming = true;
             for (D360Event event : new ArrayDeque<>(mQueueEvents)) {

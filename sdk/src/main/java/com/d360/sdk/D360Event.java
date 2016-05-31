@@ -21,6 +21,7 @@ public class D360Event {
     private static final String EVENT_KEY_NAME = "name";
     private static final String EVENT_KEY_EVENT_NO = "eventNo";
     private static final String EVENT_KEY_TIMESTAMP = "localTimeStamp";
+    private static final String EVENT_KEY_CONNECTION_INFO = "connectionInfo";
 
     private static int sEventNoCpt = 0;
 
@@ -34,6 +35,13 @@ public class D360Event {
 
     private boolean mActivateTimeStamp = false;
     private boolean mActivateConnectionType = false;
+
+    /**
+     * Creates an empty event with a name.
+     */
+    public D360Event() {
+        this("ev_NoName: " + sEventNoCpt, new ArrayMap<String, Object>(), new ArrayMap<String, Object>());
+    }
 
     /**
      * Creates an empty event with a name.
@@ -58,8 +66,13 @@ public class D360Event {
         addName();
     }
 
+    /**
+     * Returns the JSON equivalent of this object.
+     * @return
+     * @throws JSONException
+     */
     public JSONObject getJSon() throws JSONException {
-        if (!checkName())
+        if (!checkEventName(mName))
             throw new JSONException("Name must be non null and " +
                     "respect the following pattern: '^ev_[A-Za-z0-9]+'");
 
@@ -67,6 +80,11 @@ public class D360Event {
         return new JSONObject(s);
     }
 
+    /**
+     * Returns the String version of this object. May variate from an object to another because
+     * of the internal maps used.
+     * @return
+     */
     public String getJsonString() {
         Gson gson = new Gson();
         String s = "{\"data\":";
@@ -77,6 +95,11 @@ public class D360Event {
         return s;
     }
 
+    /**
+     * Populates this object with the json parameter content.
+     * @param json
+     * @throws JSONException
+     */
     public void fromJSon(JSONObject json) throws JSONException {
         JSONObject data = (JSONObject) json.get("data");
         JSONObject meta = (JSONObject) json.get("meta");
@@ -85,12 +108,12 @@ public class D360Event {
         mMapData = gson.fromJson(data.toString(), Map.class);
         mMapMeta = gson.fromJson(meta.toString(), Map.class);
         for (String s : mMapMeta.keySet()) {
-            switch(s) {
-               case EVENT_KEY_EVENT_NO:
+            switch (s) {
+                case EVENT_KEY_EVENT_NO:
                     mEventNo = ((Double) mMapMeta.get(s)).intValue();
                     break;
                 case EVENT_KEY_TIMESTAMP:
-                    mTimeStamp = ((Double)mMapMeta.get(s)).longValue();
+                    mTimeStamp = ((Double) mMapMeta.get(s)).longValue();
                     break;
                 case EVENT_KEY_NAME:
                     mName = (String) mMapMeta.get(s);
@@ -106,7 +129,7 @@ public class D360Event {
      *
      * @return
      */
-    public boolean checkName() {
+    public static boolean checkEventName(String mName) {
         if (mName == null || mName.isEmpty())
             return false;
         Pattern pattern = Pattern.compile("^ev_[A-Za-z0-9]+");
@@ -133,11 +156,26 @@ public class D360Event {
     }
 
     public void addConnectionType() {
-        addMetaParameter("connectionInfo", getConnectionType().toString().toLowerCase());
+        addMetaParameter(EVENT_KEY_CONNECTION_INFO, getConnectionType().toString().toLowerCase());
     }
 
     public void addEventNo() {
         addMetaParameter(EVENT_KEY_EVENT_NO, mEventNo);
+    }
+
+    /**
+     * Generates an event based on a JSON String. <br/>
+     * Example: <code>String jsonString = new String("{'data':'coucou'}");</code>
+     *
+     * @param jsonString
+     * @return
+     * @throws JSONException
+     */
+    public static D360Event generateEvent(String jsonString) throws JSONException {
+        JSONObject eventTest = new JSONObject(jsonString);
+        D360Event event = new D360Event();
+        event.fromJSon(eventTest);
+        return event;
     }
 
     public String getName() {
@@ -163,11 +201,47 @@ public class D360Event {
      * @return
      */
     public D360RequestManager.ConnectionType getConnectionType() {
-        return D360SDK.get().getRequestManager().getConnectionType();
+        D360SDK sdk = D360SDK.get();
+        return D360RequestManager.getConnectionType(sdk.getContext());
     }
 
     @Override
     public String toString() {
         return getJsonString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (super.equals(o))
+            return true;
+        if (!(o instanceof D360Event))
+            return false;
+        return sameMap(mMapData, ((D360Event) o).mMapData)
+                && sameMap(mMapMeta, ((D360Event) o).mMapMeta);
+    }
+
+    /**
+     * Returns true if two maps are equivalent.
+     *
+     * @param map1
+     * @param map2
+     * @return
+     */
+    public static boolean sameMap(Map<String, Object> map1, Map<String, Object> map2) {
+        if (map1 == null || map2 == null) {
+            if (map1 == null && map2 == null)
+                return true;
+            return false;
+        }
+        if (map1.size() != map2.size())
+            return false;
+        for (String s : map1.keySet()) {
+            if (!map2.containsKey(s))
+                return false;
+            Object data = map1.get(s);
+            if (!map1.get(s).equals(map2.get(s)))
+                return false;
+        }
+        return true;
     }
 }
