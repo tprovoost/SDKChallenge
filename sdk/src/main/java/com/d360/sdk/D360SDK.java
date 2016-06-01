@@ -1,9 +1,6 @@
 package com.d360.sdk;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.ConnectivityManager;
 import android.util.Log;
 
 /**
@@ -40,7 +37,7 @@ public class D360SDK {
      * @param event
      */
     public void sendEvent(D360Event event) {
-        mD360RequestManager.sendEvent(event);
+        mD360RequestManager.registerEvent(event);
     }
 
     /**
@@ -50,7 +47,7 @@ public class D360SDK {
      *
      * @return A reference to the singleton. Can be null if not initialized.
      */
-    public static D360SDK get() {
+    public static D360SDK getInstance() {
         return sD360sdk;
     }
 

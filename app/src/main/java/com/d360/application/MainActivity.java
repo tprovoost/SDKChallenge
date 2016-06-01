@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
             event.addEventNo();
             event.addTimeStamp();
             event.addConnectionType();
-            D360SDK.get().sendEvent(event);
+            D360SDK.getInstance().sendEvent(event);
         }
     }
 }

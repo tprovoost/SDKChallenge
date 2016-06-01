@@ -7,7 +7,9 @@ import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayDeque;
 import java.util.Map;
+import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,6 +70,7 @@ public class D360Event {
 
     /**
      * Returns the JSON equivalent of this object.
+     *
      * @return
      * @throws JSONException
      */
@@ -83,6 +86,7 @@ public class D360Event {
     /**
      * Returns the String version of this object. May variate from an object to another because
      * of the internal maps used.
+     *
      * @return
      */
     public String getJsonString() {
@@ -97,6 +101,7 @@ public class D360Event {
 
     /**
      * Populates this object with the json parameter content.
+     *
      * @param json
      * @throws JSONException
      */
@@ -111,9 +116,11 @@ public class D360Event {
             switch (s) {
                 case EVENT_KEY_EVENT_NO:
                     mEventNo = ((Double) mMapMeta.get(s)).intValue();
+                    mMapMeta.put(s, mEventNo);
                     break;
                 case EVENT_KEY_TIMESTAMP:
                     mTimeStamp = ((Double) mMapMeta.get(s)).longValue();
+                    mMapMeta.put(s, mTimeStamp);
                     break;
                 case EVENT_KEY_NAME:
                     mName = (String) mMapMeta.get(s);
@@ -201,7 +208,7 @@ public class D360Event {
      * @return
      */
     public D360RequestManager.ConnectionType getConnectionType() {
-        D360SDK sdk = D360SDK.get();
+        D360SDK sdk = D360SDK.getInstance();
         return D360RequestManager.getConnectionType(sdk.getContext());
     }
 
@@ -242,6 +249,29 @@ public class D360Event {
             if (!map1.get(s).equals(map2.get(s)))
                 return false;
         }
+        return true;
+    }
+
+    public static boolean compareQueues(Queue<D360Event> queue1, Queue<D360Event> queue2) {
+        if (queue1 == null || queue2 == null) {
+            if (queue1 == null && queue2 == null)
+                return true;
+            return false;
+        }
+        if (queue1.size() != queue2.size())
+            return false;
+        if (queue1.size() == 0)
+            return true;
+        Queue<D360Event> queue1Copy = new ArrayDeque<>(queue1);
+        Queue<D360Event> queue2Copy = new ArrayDeque<>(queue2);
+        D360Event event1 = null;
+        D360Event event2 = null;
+        do {
+            event1 = queue1Copy.poll();
+            event2 = queue2Copy.poll();
+            if (event1 != null && !event1.equals(event2))
+                return false;
+        } while (event1 != null);
         return true;
     }
 }

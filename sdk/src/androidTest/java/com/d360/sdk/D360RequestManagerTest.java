@@ -9,6 +9,7 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.test.AndroidTestCase;
 import android.test.InstrumentationTestCase;
 import android.test.IsolatedContext;
+import android.test.mock.MockContext;
 import android.test.suitebuilder.annotation.MediumTest;
 
 import junit.framework.TestCase;
@@ -45,8 +46,8 @@ public class D360RequestManagerTest extends InstrumentationTestCase {
 
     @Test
     public void testConnectionOn() {
-        Context context = getInstrumentation().getTargetContext();
-        D360RequestManager.checkConnectivity(context);
+        Context context = getInstrumentation().getContext();
+        assertEquals(true, D360RequestManager.checkConnectivity(context));
     }
 
     @Test

@@ -10,8 +10,10 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,10 +39,11 @@ public class D360EventTest extends TestCase {
             "\"name\":\"ev_MyCustomEvent\"," +
             "\"connectionInfo\":\"wifi\"}}";
 
-    protected JSONObject eventTest;
-    protected JSONObject eventTest2;
-    protected Map<String, Object> mapData;
-    protected Map<String, Object> mapMeta;
+    private JSONObject eventTest;
+    private JSONObject eventTest2;
+    private Map<String, Object> mapData;
+    private Map<String, Object> mapMeta;
+    private Queue<D360Event> mEvents;
 
     @Override
     protected void setUp() throws Exception {
@@ -55,6 +58,10 @@ public class D360EventTest extends TestCase {
         mapMeta.put("localTimeStamp", 1458578476L);
         mapMeta.put("name", "ev_MyCustomEvent");
         mapMeta.put("connectionInfo", "wifi");
+
+        mEvents = new ArrayDeque<>();
+        mEvents.add(D360Event.generateEvent(DATA_TEST));
+        mEvents.add(D360Event.generateEvent(DATA_TEST2));
     }
 
     @Test
@@ -110,6 +117,16 @@ public class D360EventTest extends TestCase {
         assertEquals(false, D360Event.checkEventName("ev_-za-')]{]"));
         assertEquals(false, D360Event.checkEventName("ev_\"test"));
         assertEquals(false, D360Event.checkEventName(null));
+    }
+
+    @Test
+    public void testCompareQueues() throws Exception {
+        Queue<D360Event> events2 = new ArrayDeque<>();
+        events2.add(D360Event.generateEvent(DATA_TEST));
+        assertEquals(false, D360Event.compareQueues(mEvents, events2));
+
+        events2.add(D360Event.generateEvent(DATA_TEST2));
+        assertEquals(true, D360Event.compareQueues(mEvents, events2));
     }
 }
 

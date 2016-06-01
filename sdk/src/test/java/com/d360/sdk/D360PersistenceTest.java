@@ -12,6 +12,7 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,17 +45,17 @@ public class D360PersistenceTest extends TestCase {
             "\"connectionInfo\":\"mobile\"}}";
 
     private Queue<D360Event> mEvents;
+    private Queue<D360Event> mEventsBig;
+    private Queue<D360Event> mEventsHuge;
 
     private D360Event event1;
     private D360Event event2;
-    private D360Event event3;
-
-    private byte[] inputFileSimple;
-    private byte[] inputFileDouble;
 
     @Override
     protected void setUp() throws Exception {
         mEvents = new ArrayDeque<>();
+        mEventsBig = new ArrayDeque<>();
+        mEventsHuge = new ArrayDeque<>();
 
         event1 = D360Event.generateEvent(DATA_1);
         event2 = D360Event.generateEvent(DATA_2);
@@ -62,8 +63,12 @@ public class D360PersistenceTest extends TestCase {
         mEvents.add(event1);
         mEvents.add(event2);
 
-        inputFileSimple = DATA_1.getBytes();
-        inputFileDouble = (DATA_1 + "<|>" + DATA_2).getBytes();
+        for (int i = 0; i < 500; ++i) {
+            mEventsBig.add(event1);
+        }
+        for (int i = 0; i < 5000; ++i) {
+            mEventsHuge.add(event1);
+        }
     }
 
     @Test
@@ -78,6 +83,36 @@ public class D360PersistenceTest extends TestCase {
     }
 
     @Test
+    public void testWriteOneEvent() throws Exception {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        D360Persistence.storeEvent(baos, event1, true);
+        baos.close();
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        D360Event event = D360Persistence.getQueue(bais).poll();
+        bais.close();
+        assertEquals(event1, event);
+    }
+
+    @Test
+    public void testWriteTwoEvents() throws Exception {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        D360Persistence.storeEvent(baos, event1, true);
+        D360Persistence.storeEvent(baos, event2);
+        baos.close();
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        Queue<D360Event> queue = D360Persistence.getQueue(bais);
+        D360Event e1 = queue.poll();
+        D360Event e2 = queue.poll();
+        bais.close();
+        assertEquals(event1, e1);
+        assertEquals(event2, e2);
+    }
+
+    @Test
     public void testQueueOneElement() throws Exception {
         Queue<D360Event> simpleQueue = new ArrayDeque<>();
         simpleQueue.add(event1);
@@ -86,11 +121,11 @@ public class D360PersistenceTest extends TestCase {
         D360Persistence.storeQueue(baos, simpleQueue);
         baos.close();
 
-        ByteArrayInputStream bais = new ByteArrayInputStream(inputFileSimple);
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         Queue<D360Event> eventQueue = D360Persistence.getQueue(bais);
         bais.close();
         assertEquals(simpleQueue.size(), eventQueue.size());
-        D360Event e1 = mEvents.peek();
+        D360Event e1 = mEvents.poll();
         assertEquals(event1, e1);
     }
 
@@ -100,7 +135,7 @@ public class D360PersistenceTest extends TestCase {
         D360Persistence.storeQueue(baos, mEvents);
         baos.close();
 
-        ByteArrayInputStream bais = new ByteArrayInputStream(inputFileDouble);
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         Queue<D360Event> eventQueue = D360Persistence.getQueue(bais);
         bais.close();
         assertEquals(mEvents.size(), eventQueue.size());
@@ -109,5 +144,29 @@ public class D360PersistenceTest extends TestCase {
 
         assertEquals(event1, e1);
         assertEquals(event2, e2);
+    }
+
+    @SmallTest
+    public void testQueueBigQueue() throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int written = D360Persistence.storeQueue(baos, mEventsBig);
+        baos.close();
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        Queue<D360Event> eventQueue = D360Persistence.getQueue(bais);
+        bais.close();
+        assertEquals(mEventsBig.size(), eventQueue.size());
+    }
+
+    @SmallTest
+    public void testQueueHugeQueue() throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int written = D360Persistence.storeQueue(baos, mEventsHuge);
+        baos.close();
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        Queue<D360Event> eventQueue = D360Persistence.getQueue(bais);
+        bais.close();
+        assertEquals(mEventsHuge.size(), eventQueue.size());
     }
 }
