@@ -24,7 +24,7 @@ public class D360Persistence {
     private static final String TAG = "D360Persistence";
     private static final String PREF_LAST_KEY = "lastKey";
     private static final String PERSISTENCE_FILE_QUEUE = ".D360queues";
-    private static final String JSON_SEPARATOR = "<|>";
+    private static final String JSON_SEPARATOR = "\n";
 
     public static String getLastKey(Context context) {
         return PreferenceManager.getDefaultSharedPreferences(context).getString(PREF_LAST_KEY, null);
@@ -179,7 +179,7 @@ public class D360Persistence {
                 D360Event event = D360Event.generateEvent(s);
                 queueEvents.add(event);
             } catch (JSONException jse) {
-                Log.e(TAG, "Error while parsing string: ", jse);
+                Log.e(TAG, "Error while parsing string: " + s, jse);
             }
         }
     }

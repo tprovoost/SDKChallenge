@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.annotation.NonNull;
 import android.util.ArrayMap;
 import android.util.Log;
 
@@ -24,6 +25,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Queue;
@@ -46,18 +50,12 @@ public class D360RequestManager extends BroadcastReceiver {
     /**
      * The queue used by volley to send the events
      */
-    private RequestQueue mRequestQueue;
+    protected RequestQueue mRequestQueue;
 
     private Queue<D360Event> mQueueEvents;
 
     private Context mContext;
     private final String mApiKey;
-
-    /**
-     * The event of {@link ConnectivityManager#CONNECTIVITY_ACTION} can arrive multiple times,
-     * this variable helps preventing it.
-     */
-    private boolean mAlreadyResuming = false;
     private boolean mRegistered = false;
 
     public D360RequestManager(Context context, String apiKey) {
@@ -66,11 +64,11 @@ public class D360RequestManager extends BroadcastReceiver {
         mQueueEvents = new ArrayDeque<>();
 
         initializeVolleyRequestQueue();
-        initializeHeaders(apiKey);
+        initializeHeaders(mApiKey);
 
         // Check if a connection is present, if it is, upload
         // all the downloads
-        if (checkConnectivity(context)) {
+        if (checkConnectivity(mContext)) {
             resumeDownloadFromFiles();
         } else {
             registerReceiver();
@@ -97,7 +95,7 @@ public class D360RequestManager extends BroadcastReceiver {
     /**
      * Reloads all queues in the cache file into memory and send them.
      */
-    private void resumeDownloadFromFiles() {
+    public void resumeDownloadFromFiles() {
         try {
             Queue<D360Event> mQueueEvents = D360Persistence.getQueue(mContext);
             if (mQueueEvents.size() > 0) {
@@ -115,7 +113,7 @@ public class D360RequestManager extends BroadcastReceiver {
     }
 
     public void registerEvent(D360Event event) {
-        if (checkConnectivity(mContext)) {
+        if (!checkConnectivity(mContext)) {
             Log.i(TAG, "Offline, sending later event " + event.getName());
             try {
                 D360Persistence.storeEvent(mContext, event);
@@ -129,12 +127,11 @@ public class D360RequestManager extends BroadcastReceiver {
     }
 
     /**
-     * This method sends the event onto the REST server. While doing so, it pushes it in a queue
-     * in case the connection is not available.
+     * This method sends the event into the queue responsible to send to the REST server.
      *
      * @param event
      */
-    private void sendEvent(final D360Event event) {
+    public void sendEvent(final D360Event event) {
         final JSONObject parameters;
         try {
             parameters = event.getJSon();
@@ -158,20 +155,21 @@ public class D360RequestManager extends BroadcastReceiver {
                             unregisterReceiver();
                         }
                     }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        try {
-                            D360RequestManager.this.onErrorResponse(error, event);
-                        } catch (IOException ioe) {
-                            Log.d(TAG, "Could not handle response: ", ioe);
-                        }
-                    }
-                });
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                try {
+                    D360RequestManager.this.onErrorResponse(error, event);
+                } catch (IOException ioe) {
+                    Log.d(TAG, "Could not handle response: ", ioe);
+                }
+            }
+        });
         mRequestQueue.add(request);
     }
 
+
+    // TODO to remove
     public void onErrorResponse(VolleyError error, D360Event event) throws IOException {
         if (!checkConnectivity(mContext)) {
             if (!mRegistered) {

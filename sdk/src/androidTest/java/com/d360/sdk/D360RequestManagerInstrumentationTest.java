@@ -1,31 +1,25 @@
 package com.d360.sdk;
 
-import android.app.Instrumentation;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.test.runner.AndroidJUnit4;
-import android.test.ActivityInstrumentationTestCase2;
 import android.test.AndroidTestCase;
 import android.test.InstrumentationTestCase;
-import android.test.IsolatedContext;
 import android.test.mock.MockContext;
 import android.test.suitebuilder.annotation.MediumTest;
 
-import junit.framework.TestCase;
-
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.io.File;
+import static org.mockito.Mockito.*;
 
 /**
  * Created by Thomas on 30/05/2016.
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
-public class D360RequestManagerTest extends InstrumentationTestCase {
+public class D360RequestManagerInstrumentationTest extends AndroidTestCase {
 
     public static final String DATA_TEST = "{" +
             "\"data\":{\"foo\":\"bar\"}," +
@@ -41,17 +35,20 @@ public class D360RequestManagerTest extends InstrumentationTestCase {
 
     @Override
     protected void setUp() throws Exception {
-        mManager = new D360RequestManager(getInstrumentation().getTargetContext(), FAKE_KEY);
+        mManager = new D360RequestManager(getContext(), FAKE_KEY);
     }
 
     @Test
-    public void testConnectionOn() {
-        Context context = getInstrumentation().getContext();
+    public void testGetConnexionType() {
+        Context context = new MockContext();
+        ConnectivityManager cm = mock(ConnectivityManager.class);
+        NetworkInfo activeNetwork = mock(NetworkInfo.class);
+
+        when(context.getSystemService(Context.CONNECTIVITY_SERVICE)).thenReturn(cm);
+        when(cm.getActiveNetworkInfo()).thenReturn(activeNetwork);
+        when(activeNetwork.isConnectedOrConnecting()).thenReturn(true);
+
         assertEquals(true, D360RequestManager.checkConnectivity(context));
     }
 
-    @Test
-    public void testManager() throws Exception {
-        assertEquals(4, 2 + 2 );
-    }
 }
