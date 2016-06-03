@@ -95,9 +95,9 @@ public class D360RequestManagerTest {
     @Test
     public void testConnectivity() throws Exception {
         setConnectivity(false);
-        assertEquals(false, mManager.checkConnectivity(mContext));
+        assertEquals(false, D360RequestManager.checkConnectivity(mContext));
         setConnectivity(true);
-        assertEquals(true, mManager.checkConnectivity(mContext));
+        assertEquals(true, D360RequestManager.checkConnectivity(mContext));
     }
 
     @Test
@@ -119,7 +119,7 @@ public class D360RequestManagerTest {
         List<ShadowLog.LogItem> logs = ShadowLog.getLogsForTag("D360RequestManager");
 
         assertEquals(3, logs.size());
-        assertEquals("No events in file.", logs.get(0).msg);
+        assertEquals("No events in file to reload.", logs.get(0).msg);
         assertEquals(true, logs.get(2).msg.startsWith("Request Successfully sent:"));
     }
 

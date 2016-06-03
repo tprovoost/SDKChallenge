@@ -1,16 +1,10 @@
 package com.d360.sdk;
 
 import android.content.Context;
+import android.util.ArrayMap;
 import android.util.Log;
 
-import com.android.volley.Cache;
-import com.android.volley.Network;
-import com.android.volley.toolbox.BasicNetwork;
-import com.android.volley.toolbox.DiskBasedCache;
-import com.android.volley.toolbox.HurlStack;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.util.Map;
 
 /**
  * Created by janchaloupecky on 04/05/16.
@@ -19,45 +13,32 @@ import java.net.URL;
 public class D360SDK {
 
     private static final String TAG = "D360SDK";
-
-    private static D360SDK sD360sdk;
-
+    private static Map<Context, D360SDK> allSdks;
     private final D360RequestManager mRequestManager;
 
-    private Context mContext;
-
-    private String mApiKey;
-
     private D360SDK(Context context, String apiKey) {
-        mContext = context;
         mRequestManager = new D360RequestManager(context, apiKey);
     }
 
-    public static void init(Context context, String apiKey) {
+    public static synchronized void init(Context context, String apiKey) {
         Log.i(TAG, "Starting SDK with mApiKey" + apiKey);
-        if (sD360sdk == null) {
-            sD360sdk = new D360SDK(context, apiKey);
+        if (allSdks == null) {
+            allSdks = new ArrayMap<>();
         }
-        sD360sdk.mApiKey = apiKey;
+        D360SDK sdk = allSdks.get(context);
+        if (sdk == null) {
+            sdk = new D360SDK(context, apiKey);
+            allSdks.put(context, sdk);
+        }
     }
 
     /**
      * Convenience method to send an event without calling {@link D360SDK#getRequestManager()}.
      * @param event
      */
-    public void sendEvent(D360Event event) {
-        mRequestManager.registerEvent(event);
-    }
-
-    /**
-     * Returns the singleton of the class {@link D360SDK}.
-     * Be careful, method {@link D360SDK#init(Context, String)}
-     * has to be called first.
-     *
-     * @return A reference to the singleton. Can be null if not initialized.
-     */
-    public static D360SDK getInstance() {
-        return sD360sdk;
+    public static void sendEvent(Context context, D360Event event) {
+        D360SDK sdk = allSdks.get(context);
+        sdk.getRequestManager().registerEvent(event);
     }
 
     /**
@@ -68,7 +49,4 @@ public class D360SDK {
         return mRequestManager;
     }
 
-    public Context getContext() {
-        return mContext;
-    }
 }

@@ -1,5 +1,6 @@
 package com.d360.sdk;
 
+import android.content.Context;
 import android.support.v4.util.ArrayMap;
 
 import com.google.gson.Gson;
@@ -162,8 +163,8 @@ public class D360Event {
         addMetaParameter(EVENT_KEY_TIMESTAMP, 1458578476);
     }
 
-    public void addConnectionType() {
-        addMetaParameter(EVENT_KEY_CONNECTION_INFO, getConnectionType().toString().toLowerCase());
+    public void addConnectionType(Context context) {
+        addMetaParameter(EVENT_KEY_CONNECTION_INFO, getConnectionType(context).toString().toLowerCase());
     }
 
     public void addEventNo() {
@@ -207,9 +208,8 @@ public class D360Event {
      *
      * @return
      */
-    public D360RequestManager.ConnectionType getConnectionType() {
-        D360SDK sdk = D360SDK.getInstance();
-        return sdk.getRequestManager().getConnectionType(sdk.getContext());
+    public D360RequestManager.ConnectionType getConnectionType(Context context) {
+        return D360RequestManager.getConnectionType(context);
     }
 
     @Override

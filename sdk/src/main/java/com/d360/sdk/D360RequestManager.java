@@ -185,7 +185,15 @@ public class D360RequestManager extends BroadcastReceiver {
         queue.add(request);
     }
 
-    // TODO to remove
+    /**
+     * This method checks if the error is due to a loss of connectivity or not. If it is the case,
+     * it will save all pending events into a cache file and clear the queue. If it is due to
+     * a timeout, this method will save only the current event. In all other cases, the event
+     * is lost.
+     * @param error
+     * @param event
+     * @throws IOException
+     */
     public void onErrorResponse(VolleyError error, D360Event event) throws IOException {
         if (!checkConnectivity(mContext)) {
             if (!mRegistered) {
@@ -233,7 +241,7 @@ public class D360RequestManager extends BroadcastReceiver {
      * @param context the context to test the connection with. Typically an application.
      * @return
      */
-    public boolean checkConnectivity(Context context) {
+    public static boolean checkConnectivity(Context context) {
         return getConnectionType(context) != ConnectionType.NONE;
     }
 
@@ -242,7 +250,7 @@ public class D360RequestManager extends BroadcastReceiver {
      *
      * @return If connected, returns if on wifi or mobile. Returns none in the other cases.
      */
-    public ConnectionType getConnectionType(Context context) {
+    public static ConnectionType getConnectionType(Context context) {
         ConnectivityManager cm =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
