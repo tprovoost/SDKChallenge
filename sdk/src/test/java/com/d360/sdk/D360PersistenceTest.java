@@ -1,32 +1,30 @@
 package com.d360.sdk;
 
 import android.content.Context;
-import android.test.AndroidTestCase;
-import android.test.InstrumentationTestCase;
-import android.test.mock.MockContext;
-import android.test.suitebuilder.annotation.MediumTest;
 import android.test.suitebuilder.annotation.SmallTest;
-import android.util.ArrayMap;
 
-import junit.framework.TestCase;
-
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayDeque;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Queue;
+
+import static org.junit.Assert.*;
 
 /**
  * Created by Thomas on 31/05/2016.
  */
-@SmallTest
-public class D360PersistenceTest extends TestCase {
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = BuildConfig.class)
+public class D360PersistenceTest {
 
     public static final String DATA_1 = "{" +
             "\"data\":{\"foo\":\"bar\"}," +
@@ -51,8 +49,11 @@ public class D360PersistenceTest extends TestCase {
     private D360Event event1;
     private D360Event event2;
 
-    @Override
-    protected void setUp() throws Exception {
+    private Context mContext;
+
+    @Before
+    public void setUp() throws Exception {
+        mContext = RuntimeEnvironment.application;
         mEvents = new ArrayDeque<>();
         mEventsBig = new ArrayDeque<>();
         mEventsHuge = new ArrayDeque<>();
@@ -74,8 +75,8 @@ public class D360PersistenceTest extends TestCase {
     @Test
     public void testParseString() throws Exception {
         Queue<D360Event> queueResult = new ArrayDeque<>();
-        D360Persistence.getQueueFromString(DATA_1 + "<|>" + DATA_2, queueResult);
-        assertEquals(2 , queueResult.size());
+        D360Persistence.getQueueFromString(DATA_1 + "\n" + DATA_2, queueResult);
+        assertEquals(2, queueResult.size());
         D360Event e1 = queueResult.poll();
         D360Event e2 = queueResult.poll();
         assertEquals(event1, e1);
@@ -84,7 +85,6 @@ public class D360PersistenceTest extends TestCase {
 
     @Test
     public void testWriteOneEvent() throws Exception {
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         D360Persistence.storeEvent(baos, event1, true);
         baos.close();
@@ -97,7 +97,6 @@ public class D360PersistenceTest extends TestCase {
 
     @Test
     public void testWriteTwoEvents() throws Exception {
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         D360Persistence.storeEvent(baos, event1, true);
         D360Persistence.storeEvent(baos, event2);
@@ -168,5 +167,39 @@ public class D360PersistenceTest extends TestCase {
         Queue<D360Event> eventQueue = D360Persistence.getQueue(bais);
         bais.close();
         assertEquals(mEventsHuge.size(), eventQueue.size());
+    }
+
+    @Test
+    public void testAccessToCacheFile() throws Exception {
+        D360Persistence.getCacheFile(RuntimeEnvironment.application);
+    }
+
+    @Test
+    public void testWritingEventToDisk() throws Exception {
+        D360Persistence.storeEvent(mContext, mEvents.peek());
+        Queue<D360Event> events = D360Persistence.getQueue(mContext);
+        assertEquals(mEvents.peek(), events.peek());
+    }
+
+    @Test
+    public void testWritingQueueToDisk() throws Exception {
+        D360Persistence.storeQueue(mContext, mEventsBig);
+        Queue<D360Event> events = D360Persistence.getQueue(mContext);
+        assertEquals(true, D360Event.compareQueues(events, mEventsBig));
+    }
+
+    @Test
+    public void testWritingBigQueueToDisk() throws Exception {
+        // last time = 1m 40s 61ms
+        D360Persistence.storeQueue(mContext, mEventsHuge);
+        Queue<D360Event> events = D360Persistence.getQueue(mContext);
+        assertEquals(true, D360Event.compareQueues(events, mEventsHuge));
+    }
+
+    @Test
+    public void testFileDeletedAfterQueue() throws Exception {
+        D360Persistence.storeEvent(mContext, mEvents.peek());
+        Queue<D360Event> events = D360Persistence.getQueue(mContext);
+        assertFalse(D360Persistence.getCacheFile(mContext).exists());
     }
 }

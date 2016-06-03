@@ -209,7 +209,7 @@ public class D360Event {
      */
     public D360RequestManager.ConnectionType getConnectionType() {
         D360SDK sdk = D360SDK.getInstance();
-        return D360RequestManager.getConnectionType(sdk.getContext());
+        return sdk.getRequestManager().getConnectionType(sdk.getContext());
     }
 
     @Override

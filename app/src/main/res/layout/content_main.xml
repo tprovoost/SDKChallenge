@@ -12,18 +12,12 @@
     tools:context="com.d360.application.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        android:id="@+id/textView"/>
-
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/btn_generate"
         android:id="@+id/button"
-        android:layout_below="@+id/textView"
+        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="85dp"/>
+        android:layout_marginBottom="106dp"/>
 </RelativeLayout>

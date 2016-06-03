@@ -12,7 +12,9 @@ import android.util.Log;
 
 import com.android.volley.Cache;
 import com.android.volley.Network;
+import com.android.volley.NetworkResponse;
 import com.android.volley.NoConnectionError;
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.TimeoutError;
@@ -37,7 +39,7 @@ import java.util.Queue;
  */
 public class D360RequestManager extends BroadcastReceiver {
 
-    public enum ConnectionType {NONE, WIFI, MOBILE, OTHER}
+    public enum ConnectionType { NONE, WIFI, MOBILE }
 
     private static final String TAG = "D360RequestManager";
     private static final String DEV_URL = "http://api.dev.staging.crm.slace.me/v2/events";
@@ -59,17 +61,21 @@ public class D360RequestManager extends BroadcastReceiver {
     private boolean mRegistered = false;
 
     public D360RequestManager(Context context, String apiKey) {
+        this(context, apiKey, null, null);
+    }
+
+    public D360RequestManager(Context context, String apiKey, Cache cache, Network network) {
         mContext = context;
         mApiKey = apiKey;
         mQueueEvents = new ArrayDeque<>();
 
-        initializeVolleyRequestQueue();
+        initializeVolleyRequestQueue(cache, network);
         initializeHeaders(mApiKey);
 
         // Check if a connection is present, if it is, upload
         // all the downloads
         if (checkConnectivity(mContext)) {
-            resumeDownloadFromFiles();
+            resumeDownloadFromFiles(mRequestQueue);
         } else {
             registerReceiver();
         }
@@ -81,13 +87,16 @@ public class D360RequestManager extends BroadcastReceiver {
         mHeaders.put("Content-Type", "application/json");
     }
 
-    private void initializeVolleyRequestQueue() {
-        // Instantiate the cache
-        Cache cache = new DiskBasedCache(mContext.getCacheDir(), 1024 * 1024); // 1MB cap
+    private void initializeVolleyRequestQueue(Cache cache, Network network) {
 
-        // Set up the network to use HttpURLConnection as the HTTP client.
-        Network network = new BasicNetwork(new HurlStack());
-
+        if (cache == null) {
+            // Instantiate the cache
+            cache = new DiskBasedCache(mContext.getCacheDir(), 1024 * 1024); // 1MB cap
+        }
+        if (network == null) {
+            // Set up the network to use HttpURLConnection as the HTTP client.
+            network = new BasicNetwork(new HurlStack());
+        }
         // Instantiate the RequestQueue with the cache and network.
         mRequestQueue = new RequestQueue(cache, network);
     }
@@ -95,17 +104,17 @@ public class D360RequestManager extends BroadcastReceiver {
     /**
      * Reloads all queues in the cache file into memory and send them.
      */
-    public void resumeDownloadFromFiles() {
+    public void resumeDownloadFromFiles(RequestQueue requestQueue) {
         try {
             Queue<D360Event> mQueueEvents = D360Persistence.getQueue(mContext);
             if (mQueueEvents.size() > 0) {
                 Log.v(TAG, "Reloads all events from file.");
-                mRequestQueue.start();
+                requestQueue.start();
                 for (D360Event event : mQueueEvents) {
                     registerEvent(event);
                 }
             } else {
-                Log.v(TAG, "No events in file.");
+                Log.i(TAG, "No events in file to reload.");
             }
         } catch (IOException ioe) {
             Log.e(TAG, "Cache file could not be read: ", ioe);
@@ -113,7 +122,15 @@ public class D360RequestManager extends BroadcastReceiver {
     }
 
     public void registerEvent(D360Event event) {
+        registerEvent(mRequestQueue, event);
+    }
+
+    public void registerEvent(RequestQueue requestQueue, D360Event event) {
+        if (event == null)
+            return;
         if (!checkConnectivity(mContext)) {
+            if (!mRegistered)
+                registerReceiver();
             Log.i(TAG, "Offline, sending later event " + event.getName());
             try {
                 D360Persistence.storeEvent(mContext, event);
@@ -122,7 +139,7 @@ public class D360RequestManager extends BroadcastReceiver {
             }
         } else {
             mQueueEvents.add(event);
-            sendEvent(event);
+            sendEvent(requestQueue, event);
         }
     }
 
@@ -131,7 +148,7 @@ public class D360RequestManager extends BroadcastReceiver {
      *
      * @param event
      */
-    public void sendEvent(final D360Event event) {
+    public void sendEvent(RequestQueue queue, final D360Event event) {
         final JSONObject parameters;
         try {
             parameters = event.getJSon();
@@ -165,9 +182,8 @@ public class D360RequestManager extends BroadcastReceiver {
                 }
             }
         });
-        mRequestQueue.add(request);
+        queue.add(request);
     }
-
 
     // TODO to remove
     public void onErrorResponse(VolleyError error, D360Event event) throws IOException {
@@ -217,7 +233,7 @@ public class D360RequestManager extends BroadcastReceiver {
      * @param context the context to test the connection with. Typically an application.
      * @return
      */
-    public static boolean checkConnectivity(Context context) {
+    public boolean checkConnectivity(Context context) {
         return getConnectionType(context) != ConnectionType.NONE;
     }
 
@@ -226,7 +242,7 @@ public class D360RequestManager extends BroadcastReceiver {
      *
      * @return If connected, returns if on wifi or mobile. Returns none in the other cases.
      */
-    public static ConnectionType getConnectionType(Context context) {
+    public ConnectionType getConnectionType(Context context) {
         ConnectivityManager cm =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -250,8 +266,8 @@ public class D360RequestManager extends BroadcastReceiver {
         boolean connected = checkConnectivity(context);
         if (connected) {
             unregisterReceiver();
-            Log.v(TAG, "Connection is back on, resuming event sending...");
-            resumeDownloadFromFiles();
+            Log.i(TAG, "Connection is back on, resuming event sending...");
+            resumeDownloadFromFiles(mRequestQueue);
         }
     }
 

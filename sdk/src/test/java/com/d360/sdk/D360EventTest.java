@@ -79,6 +79,19 @@ public class D360EventTest extends TestCase {
     }
 
     @Test
+    public void testGetJSon() throws Exception {
+        D360Event event = D360Event.generateEvent(DATA_TEST);
+        event.getJSon();
+        event = new D360Event("bad name");
+        try {
+            event.getJSon();
+            throw new Exception("Name was wrong but no error.");
+        } catch (Exception e) {
+            // normal case
+        }
+    }
+
+    @Test
     public void testSameMaps() throws Exception {
         Map<String, Object> map1 = new HashMap<>();
         Map<String, Object> map2 = new HashMap<>();
@@ -123,10 +136,31 @@ public class D360EventTest extends TestCase {
     public void testCompareQueues() throws Exception {
         Queue<D360Event> events2 = new ArrayDeque<>();
         events2.add(D360Event.generateEvent(DATA_TEST));
-        assertEquals(false, D360Event.compareQueues(mEvents, events2));
+        assertFalse(D360Event.compareQueues(mEvents, events2));
 
         events2.add(D360Event.generateEvent(DATA_TEST2));
-        assertEquals(true, D360Event.compareQueues(mEvents, events2));
+        assertTrue(D360Event.compareQueues(mEvents, events2));
+    }
+
+    @Test
+    public void testGenerateEvent() throws Exception {
+        D360Event.generateEvent(DATA_TEST);
+        D360Event.generateEvent(DATA_TEST2);
+
+        // test corruption of data
+        try {
+            D360Event.generateEvent("aico,v");
+            throw new Exception("The parsing should have had a problem");
+        } catch (JSONException e) {
+            // do nothing, normal behavior
+        }
+
+        try {
+            D360Event.generateEvent("{ \"a\": \"b\"}");
+            throw new Exception("The parsing should have had a problem");
+        } catch (JSONException e) {
+            // do nothing, normal behavior
+        }
     }
 }
 
