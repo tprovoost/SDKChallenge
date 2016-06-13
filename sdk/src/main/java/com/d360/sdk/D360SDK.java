@@ -15,13 +15,15 @@ public class D360SDK {
     private static final String TAG = "D360SDK";
     private static Map<Context, D360SDK> allSdks;
     private final D360RequestManager mRequestManager;
+    private String mApiKey;
 
     private D360SDK(Context context, String apiKey) {
+        mApiKey = apiKey;
         mRequestManager = new D360RequestManager(context, apiKey);
     }
 
     public static synchronized void init(Context context, String apiKey) {
-        Log.i(TAG, "Starting SDK with mApiKey" + apiKey);
+        Log.i(TAG, "Starting SDK with mApiKey " + apiKey);
         if (allSdks == null) {
             allSdks = new ArrayMap<>();
         }
@@ -32,6 +34,10 @@ public class D360SDK {
         }
     }
 
+    public static D360SDK getSDK(Context context) {
+        return allSdks.get(context);
+    }
+
     /**
      * Convenience method to send an event without calling {@link D360SDK#getRequestManager()}.
      * @param event
@@ -39,6 +45,8 @@ public class D360SDK {
     public static void sendEvent(Context context, D360Event event) {
         D360SDK sdk = allSdks.get(context);
         sdk.getRequestManager().registerEvent(event);
+        D360Persistence.setLastKey(context, sdk.mApiKey);
+        context.startService(D360RequestService.newIntent(context, sdk.mApiKey));
     }
 
     /**

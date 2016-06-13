@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Created by Thomas on 30/05/2016.
  */
-public class D360Persistence {
+class D360Persistence {
 
     private static final String TAG = "D360Persistence";
     private static final String PREF_LAST_KEY = "lastKey";

@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * Created by Thomas on 30/05/2016.
  */
-public class D360Request extends JsonObjectRequest {
+class D360Request extends JsonObjectRequest {
     private final Gson gson = new Gson();
     private final Map<String, String> mHeaders;
     private final Response.Listener<JSONObject> listener;

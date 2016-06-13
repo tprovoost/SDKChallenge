@@ -9,7 +9,6 @@ import android.view.View;
 import android.widget.Button;
 
 import com.d360.sdk.D360Event;
-import com.d360.sdk.D360Persistence;
 import com.d360.sdk.D360SDK;
 
 import org.json.JSONException;
@@ -52,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                for (int i = 0; i < 100; ++i) {
+                for (int i = 0; i < 1; ++i) {
                     D360Event event = new D360Event("ev_MyCustomEvent" + i);
 
                     // add key/value data to the event request

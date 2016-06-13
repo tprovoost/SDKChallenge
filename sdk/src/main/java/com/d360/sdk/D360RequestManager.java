@@ -37,7 +37,7 @@ import java.util.Queue;
 /**
  * Created by Thomas on 30/05/2016.
  */
-public class D360RequestManager extends BroadcastReceiver {
+class D360RequestManager extends BroadcastReceiver {
 
     public enum ConnectionType { NONE, WIFI, MOBILE }
 
@@ -71,14 +71,6 @@ public class D360RequestManager extends BroadcastReceiver {
 
         initializeVolleyRequestQueue(cache, network);
         initializeHeaders(mApiKey);
-
-        // Check if a connection is present, if it is, upload
-        // all the downloads
-        if (checkConnectivity(mContext)) {
-            resumeDownloadFromFiles(mRequestQueue);
-        } else {
-            registerReceiver();
-        }
     }
 
     private void initializeHeaders(String apiKey) {
@@ -99,6 +91,13 @@ public class D360RequestManager extends BroadcastReceiver {
         }
         // Instantiate the RequestQueue with the cache and network.
         mRequestQueue = new RequestQueue(cache, network);
+    }
+
+    /**
+     * Reloads all queues in the cache file into memory and send them.
+     */
+    public void resumeDownloadFromFiles() {
+        resumeDownloadFromFiles(mRequestQueue);
     }
 
     /**
@@ -128,7 +127,7 @@ public class D360RequestManager extends BroadcastReceiver {
     public void registerEvent(RequestQueue requestQueue, D360Event event) {
         if (event == null)
             return;
-        if (!checkConnectivity(mContext)) {
+        if (!checkConnectivity(mContext)) { // No connection
             if (!mRegistered)
                 registerReceiver();
             Log.i(TAG, "Offline, sending later event " + event.getName());
@@ -137,7 +136,7 @@ public class D360RequestManager extends BroadcastReceiver {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
+        } else { // Connected
             mQueueEvents.add(event);
             sendEvent(requestQueue, event);
         }
